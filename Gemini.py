@@ -43,7 +43,7 @@ if st.button("Generar Ideas"):
                 prompt_dinamico = f"Dame 3 ideas de títulos atractivos para un reel sobre {tema_usuario}."
                 
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-2.0-flash',
                     contents=prompt_dinamico,
                 )
 
