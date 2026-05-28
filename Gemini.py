@@ -1,56 +1,59 @@
-import os
-from google import genai
-from dotenv import load_dotenv
 import streamlit as st
+import cohere
+import os
+from dotenv import load_dotenv
+# --- Información de la Aplicación ---
+st.sidebar.title("ℹ️ Información")
+st.sidebar.markdown("""
+### ¿Cómo funciona?
+Esta herramienta te ayuda a desbloquear tu creatividad en segundos. 
+1. **Escribe un tema**: Solo tienes que decirnos de qué trata tu video o proyecto.
+2. **Haz clic en Generar**: Nuestra Inteligencia Artificial analizará tu idea.
+3. **Obtén resultados**: Recibirás tres propuestas creativas diseñadas específicamente para desarrollar tu idea.
+""")
 
-# 1. Cargamos las variables de entorno desde el archivo .env
+# 1. Cargamos el archivo .env para desarrollo local
 load_dotenv()
 
-# 2. Validamos que la clave exista antes de continuar
-api_key_segura = os.getenv("GEMINI_API_KEY")
+# 2. Obtenemos la API KEY de forma segura:
+# Primero busca en los Secrets de Streamlit, si no lo encuentra, busca en el .env local
+api_key = st.secrets.get("COHERE_API_KEY") or os.getenv("COHERE_API_KEY")
 
-if not api_key_segura:
-    print(" Error: No se encontró la variable GEMINI_API_KEY en el archivo .env")
-else:
-    # 3. Inicializamos el cliente moderno de Google GenAI pasándole la clave de forma explícita
-    client = genai.Client(api_key=api_key_segura)
-
-    # 4. Generamos el contenido usando el modelo recomendado actual
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents='Dame 3 ideas de títulos atractivos para un reel sobre programación en Python.',
-    )
-
-    print("--- Respuesta Segura de Google Gemini ---")
-    print(response.text)
+# 3. Inicializamos el cliente de Cohere
+client = None
+if api_key:
+    client = cohere.Client(api_key=api_key)
 
 # --- Configuración de la Interfaz con Streamlit ---
-st.set_page_config(page_title="Asistente Gemini", page_icon="🤖")
+st.set_page_config(page_title="Asistente IA", page_icon="🤖")
 
-st.title("🚀 Generador de Ideas con Gemini")
+st.title("🚀 Generador de Ideas con Cohere")
 st.markdown("Introduce un tema para obtener sugerencias creativas utilizando Inteligencia Artificial.")
 
-# Campo de entrada de texto para el usuario
+# Campo de entrada de texto
 tema_usuario = st.text_input("¿Sobre qué quieres generar ideas?", "Programación en Python")
 
 if st.button("Generar Ideas"):
-    if not api_key_segura:
-        st.error("Error: No se encontró la variable GEMINI_API_KEY en el archivo .env")
+    if not api_key:
+        st.error("Error: No se encontró la API KEY de Cohere. Configúrala en los Secrets de Streamlit.")
+    elif not client:
+        st.error("Error: No se pudo inicializar el cliente de Cohere.")
     else:
-        with st.spinner("Consultando a Gemini..."):
+        with st.spinner("Consultando a Cohere..."):
             try:
-                # 4. Generamos el contenido usando el input del usuario
-                prompt_dinamico = f"Dame 3 ideas de títulos atractivos para un reel sobre {tema_usuario}."
+                # 4. Generamos el contenido usando el cliente de Cohere
+                prompt_dinamico = f"Dame 3 ideas creativas y originales sobre {tema_usuario}."
                 
-                response = client.models.generate_content(
-                    model='gemini-2.0-flash',
-                    contents=prompt_dinamico,
+                # Llamada a la API de Cohere
+                response = client.chat(
+                    message=prompt_dinamico,
+                    model="command-r"
                 )
 
-                st.subheader("--- Respuesta de Google Gemini ---")
+                st.subheader("--- Respuesta de Cohere ---")
                 st.write(response.text)
                 st.success("¡Contenido generado con éxito!")
                 
             except Exception as e:
-                st.error(f"Ocurrió un error: {e}")
+                st.error(f"Ocurrió un error al consultar a Cohere: {e}")
 
